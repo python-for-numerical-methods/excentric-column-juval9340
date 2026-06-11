@@ -11,18 +11,36 @@ def find_critical_load(L, E, A, r, c, e, sigma_allow):
     Return: העומס P בניוטון (float)
     """
     # כתבו כאן את הקוד
-import numpy as np
-from scipy.optimize import bisect
+import math
+    def f(P):
+        # חישוב המאמץ המקסימלי לפי נוסחת הסקנט
+        sigma_max = (P / A) * (
+            1.0 + (e * c / r**2) *
+            (1.0 / math.cos((L / (2.0 * r)) * math.sqrt(P / (E * A))))
+        )
+        return sigma_max - sigma_allow
 
-def f(P):
-    sigma_max = (P / A) * (
-        1 + (e * c / r**2) *
-        (1 / np.cos((L / (2 * r)) * np.sqrt(P / (E * A))))
-    )
-    return sigma_max - sigma_allow
+    # חישוב עומס קריסה של אוילר (החסם העליון)
+    euler_load = (math.pi**2 * E * (A * r**2)) / (L**2)
 
-euler_load = (np.pi**2 * E * (A * r**2)) / (L**2)
+    # הגדרת גבולות לשיטת החצייה
+    P_low = 1e-6
+    P_high = 0.999 * euler_load
 
-P = bisect(f, 1e-6, 0.999 * euler_load)
+    # לולאת חצייה ידנית
+    tol = 1e-6
+    max_iter = 1000
 
-return float(P)
+    for _ in range(max_iter):
+        P_mid = (P_low + P_high) / 2.0
+        f_mid = f(P_mid)
+
+        if abs(f_mid) < tol or (P_high - P_low) < tol:
+            return float(P_mid)
+
+        if f(P_low) * f_mid < 0:
+            P_high = P_mid
+        else:
+            P_low = P_mid
+
+    return float((P_low + P_high) / 2.0)
